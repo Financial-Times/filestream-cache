@@ -129,13 +129,6 @@ StreamCache.prototype.read = function(identifier, options) {
 	});
 };
 
-StreamCache.prototype.set = function(identifier, stream) {
-	var cachedObjectPath = this._getCachedObjectPath(identifier);
-	var cacheFile = fs.createWriteStream(cachedObjectPath);
-
-	stream.pipe(cacheFile);
-};
-
 StreamCache.prototype.writeThrough = function(identifier, stream) {
 	var cachedObjectPath = this._getCachedObjectPath(identifier);
 

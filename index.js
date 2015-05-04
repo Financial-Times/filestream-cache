@@ -81,7 +81,7 @@ StreamCache.prototype.purge = function(callback) {
 
 			// Try and purge all of the cached objects.  `tryall` will try
 			// every promise and collect erroring promises as part of it's
-			// resolved value.
+			// resolved value rather than throwing.
 			resolve(filesToPurgePromise.then(function(filesToPurge) {
 				return tryall(filesToPurge.map(function(file) {
 					return new Promise(function(innerResolve, innerReject) {

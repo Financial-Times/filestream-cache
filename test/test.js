@@ -72,7 +72,7 @@ describe("StreamCache", function() {
 			});
 
 			var streamBuffer = "";
-			cachedStreamon('data', function(data) {
+			cachedStream.on('data', function(data) {
 				streamBuffer += data.toString();
 			});
 

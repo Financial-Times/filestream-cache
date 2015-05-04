@@ -99,6 +99,18 @@ StreamCache.prototype.purge = function(callback) {
 	});
 };
 
+/**
+ * Return a stream if the requested cache key exists, or boolean false if the
+ * cache key does not exist in the cache.
+ *
+ * @param {String} identifier    The cache key.
+ * @param {Object} options       Additional options.
+ * @param {Date}   options.newer Than Only return cached objects that are newer
+ *                               than this time
+ *
+ * @return {Promise<{(ReadStream | Boolean)}>} A promise containing the stream
+ *                                             from the cache.
+ */
 StreamCache.prototype.read = function(identifier, options) {
 	options = options || {};
 	var cachedObjectPath = this._getCachedObjectPath(identifier);

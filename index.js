@@ -35,21 +35,25 @@ function StreamCache(rootDirectory) {
  * @param {String} identifier                     The cache key.
  * @param {Object} options                        The options object.
  * @param {Function -> ReadStream} createCallback A function that can be used to create a new object if the cache key is empty.
- * @return {Promise -> ReadStream}
+ * @return {ReadStream}
  */
 StreamCache.prototype.get = function(identifier, options, createCallback) {
+	// Create a PassThrough stream (https://nodejs.org/api/stream.html#stream_class_stream_passthrough)
+	// and attach the cache stream or the writeThrough stream to it once the
+	// cached object has been looked up.
 
 	var cache = this;
+	var passThroughStream = new PassThrough();
 
-	return new Promise(function(resolve, reject) {
-		cache.read(identifier, options).then(function(stream) {
-			if (stream) {
-				resolve(stream);
-			} else {
-				resolve(cache.writeThrough(identifier, createCallback()));
-			}
-		});
+	cache.read(identifier, options).then(function(stream) {
+		if (stream) {
+			stream.pipe(passThroughStream);
+		} else {
+			cache.writeThrough(identifier, createCallback()).pipe(passThroughStream);
+		}
 	});
+
+	return passThroughStream;
 };
 
 /**

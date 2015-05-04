@@ -129,6 +129,15 @@ StreamCache.prototype.read = function(identifier, options) {
 	});
 };
 
+/**
+ * Write a stream's content to the cache transparently, the returned stream is
+ * equivalent.
+ *
+ * @param   {String}    identifier The cache key to store the cached object at
+ * @param  {ReadStream} stream     The stream to cache, the return value is
+ *                                 equivalent to this stream.
+ * @return {ReadStream} Returns a stream equivalent to the stream passed to this method.
+ */
 StreamCache.prototype.writeThrough = function(identifier, stream) {
 	var cachedObjectPath = this._getCachedObjectPath(identifier);
 

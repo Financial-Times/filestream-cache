@@ -68,7 +68,7 @@ describe("StreamCache", function() {
 			var streamCache = new StreamCache(testDirectory);
 
 			var cachedStream = streamCache.get(cacheKey, {}, function() {
-				return helpers.createStream(streamContent);
+				return helpers.createStream(streamContent).end();
 			});
 
 			var streamBuffer = "";
@@ -92,7 +92,42 @@ describe("StreamCache", function() {
 				rmrf(testDirectory);
 				done(e || new Error("Stream fired 'error' event without error argument"));
 			});
+		});
 
+		it("should, if the cache key does exist, return the cached object", function(done) {
+			var streamContent = 'my test stream content';
+			var testBucket = 'get#test-read';
+			var cacheKey = 'test-key';
+
+			var testDirectory = helpers.localTestDirectory(testBucket);
+
+			var streamCache = new StreamCache(testDirectory);
+			var objectOnDisk = streamCache._getCachedObjectPath(cacheKey);
+
+			fs.writeFile(objectOnDisk, streamContent, function(err) {
+				if (err) { done(err); return; }
+
+				var stream = streamCache.get(cacheKey, {}, function() {
+					done(new Error("Should've picked up the cached object rather than creating a new one"));
+				});
+
+				var streamBuffer = "";
+
+				stream.on('data', function(data) {
+					streamBuffer += data.toString();
+				});
+
+				stream.on('end', function() {
+					assert.equal(streamContent, streamBuffer);
+					rmrf(testDirectory);
+					done();
+				});
+
+				stream.on('error', function(e) {
+					rmrf(testDirectory);
+					done(e || new Error("Stream fired 'error' event without error argument"));
+				});
+			});
 		});
 	});
 });

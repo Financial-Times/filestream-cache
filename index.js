@@ -45,7 +45,7 @@ StreamCache.prototype.get = function(identifier, options, createCallback) {
 	var cache = this;
 	var passThroughStream = new PassThrough();
 
-	cache.read(identifier, options).then(function(stream) {
+	cache._read(identifier, options).then(function(stream) {
 		if (stream) {
 			stream.pipe(passThroughStream);
 		} else {
@@ -115,7 +115,7 @@ StreamCache.prototype.purge = function(callback) {
  * @return {Promise<{(ReadStream | Boolean)}>} A promise containing the stream
  *                                             from the cache.
  */
-StreamCache.prototype.read = function(identifier, options) {
+StreamCache.prototype._read = function(identifier, options) {
 	options = options || {};
 	var cachedObjectPath = this._getCachedObjectPath(identifier);
 

@@ -1,0 +1,14 @@
+{
+  "name": "filestream-cache",
+  "devDependencies": {
+    "mocha": "^2.2.4",
+    "resumer": "0.0.0"
+  }.
+  "dependencies": {
+    "async-filter": "^1.0.0",
+    "mkdirp": "^0.5.0",
+    "rmrf": "^1.0.2",
+    "through2": "^0.6.5",
+    "tryall": "^1.0.1"
+  }
+}

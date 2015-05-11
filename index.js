@@ -78,8 +78,7 @@ StreamCache.prototype.get = function(identifier, options, createCallback) {
 	var cache = this;
 	var passThroughStream = new PassThrough();
 
-	cache._read(identifier, options).catch(function(error) {
-	}).then(function(stream) {
+	cache._read(identifier, options).then(function(stream) {
 		if (!stream) {
 			var newStream;
 
@@ -160,12 +159,20 @@ StreamCache.prototype.purge = function(callback) {
  */
 StreamCache.prototype._read = function(identifier, options) {
 	var cachedObjectPath = this._getCachedObjectPath(identifier);
+	var cache = this;
 
 	return this._getReadFileDescriptor(identifier).then(function(fd) {
+		return cache._isStale(fd).then(function(isStale) {
+			if (isStale) {
+				return false;
+			} else {
+				// First argument of fs.createReadStream is ignored
+				// because the 'fd' is present
+				return fs.createReadStream(false, { fd: fd, autoClose: true });
+			}
+		});
 
-		// First argument of fs.createReadStream is ignored
-		// because the 'fd' is present
-		return fs.createReadStream(false, { fd: fd, autClose: true });
+
 	}).catch(function(e) {
 		return false;
 	});

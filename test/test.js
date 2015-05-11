@@ -69,6 +69,48 @@ describe("StreamCache", function() {
 
 	describe("#get(identifier, options, callback)", function() {
 
+		it("should, if the cached object's age is older than the default ttl, create a new stream and overwrite the cache", function(done) {
+			var streamContent = 'my test stream content';
+			var testBucket = 'get#test-create-stale';
+			var cacheKey = 'testkey';
+
+			var testDirectory = helpers.localTestDirectory(testBucket);
+			var streamCache = new StreamCache(testDirectory, { defaultTtl: -1 });
+
+			var streamCreateCount = 0;
+
+			var cachedStream = streamCache.get(cacheKey, {}, function() {
+				streamCreateCount++;
+				return helpers.createStream(streamContent + " - first create").end();
+			});
+
+			cachedStream.on('data', function() { /* do nothing */ });
+			cachedStream.on('error', function(e) { rmrf(testDirectory); done(e); });
+			cachedStream.on('end', function()  { next(); });
+
+			function next() {
+				var content = streamContent + " - second create";
+				var freshStream = streamCache.get(cacheKey, {}, function() {
+					streamCreateCount++;
+					return helpers.createStream(content).end();
+				});
+
+				var bufferedContent = "";
+
+				freshStream.on('data', function(data) {
+					bufferedContent += data.toString();
+				});
+				freshStream.on('error', function(e) { rmrf(testDirectory); done(e); });
+
+				freshStream.on('end', function() {
+					rmrf(testDirectory);
+					assert.equal(streamCreateCount, 2);
+					assert.equal(bufferedContent, content);
+					done();
+				});
+			}
+		});
+
 		it("should, if the cache key does not exist, create a new stream using the callback and cache it", function(done) {
 			var streamContent = 'my test stream content';
 			var testBucket = 'get#test-create';

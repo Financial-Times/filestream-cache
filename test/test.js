@@ -1,10 +1,20 @@
-var StreamCache = require('../index');
-var fs = require('fs');
+var StreamCache = require('../index'); var fs = require('fs');
 var assert = require('assert');
 var helpers = require('./testhelper');
 var rmrf = require('rmrf');
 
 describe("StreamCache", function() {
+
+	describe("#isStale(identifier)", function() {
+		it("should return true, if the cache object is stale", function(done) {
+			helpers.testIsStale(-1, true, done);
+		});
+
+		it("should return false, if the cache object is not stale", function(done) {
+			helpers.testIsStale(4000, false, done);
+		});
+
+	});
 
 	describe("#purge(callback)", function() {
 		it("should purge any objects from the cache where the Promise returned from the callback resolves as true", function(done) {
@@ -58,6 +68,7 @@ describe("StreamCache", function() {
 	});
 
 	describe("#get(identifier, options, callback)", function() {
+
 		it("should, if the cache key does not exist, create a new stream using the callback and cache it", function(done) {
 			var streamContent = 'my test stream content';
 			var testBucket = 'get#test-create';

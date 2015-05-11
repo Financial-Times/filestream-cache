@@ -5,6 +5,7 @@ var PassThrough = require('stream').PassThrough;
 var asyncFilter = require('async-filter');
 var tryall = require('tryall');
 var mkdirp = require('mkdirp');
+var twelveHoursInSeconds = 43200;
 
 /**
  * Create a new StreamCache (or attach to an existing one)
@@ -12,8 +13,11 @@ var mkdirp = require('mkdirp');
  * @constructor
  * @param {String} rootDirectory The directory in which to store cached objects.
  */
-function StreamCache(rootDirectory) {
+function StreamCache(rootDirectory, options) {
 	this.rootCacheDirectory = rootDirectory;
+	options = options || {};
+	this.defaultTtl = options.defaultTtl || twelveHoursInSeconds;
+	this.serveStale = options.serveStale || false;
 
 	// TODO: Where's best to handle errors here?
 	// Ensure the rootCacheDirectory is present.
@@ -27,6 +31,35 @@ function StreamCache(rootDirectory) {
 		});
 	}.bind(this));
 }
+
+StreamCache.prototype.getMetaData = function(identifier) {
+	var cachedObjectPath = this._getCachedObjectPath(identifier);
+	var cache = this;
+
+	return this._getReadFileDescriptor(identifier).then(function(fd) {
+		return cache._getMetaDataUsingFileDescriptor(fd);
+	});
+};
+
+StreamCache.prototype._getMetaDataUsingFileDescriptor = function(fd) {
+	return new Promise(function(resolve, reject) {
+		fs.fstat(fd, function(err, stat) {
+			if (err) {
+				reject(err);
+				return;
+			}
+
+			var lastModified = (stat.mtime.getTime() / 1000)|0;
+			var timeNowInSeconds = ((Date.now() / 1000)|0);
+
+			resolve({
+				age: timeNowInSeconds - lastModified,
+				firstCreated: (stat.birthtime.getTime() / 1000)|0,
+				lastModified: lastModified
+			});
+		});
+	});
+};
 
 /**
  * Get a Stream from the cache, if the stream doesn't exist, create it via the
@@ -45,11 +78,21 @@ StreamCache.prototype.get = function(identifier, options, createCallback) {
 	var cache = this;
 	var passThroughStream = new PassThrough();
 
-	cache._read(identifier, options).then(function(stream) {
-		if (stream) {
-			stream.pipe(passThroughStream);
+	cache._read(identifier, options).catch(function(error) {
+	}).then(function(stream) {
+		if (!stream) {
+			var newStream;
+
+			try {
+				newStream = createCallback();
+			} catch(err) {
+				passThroughStream.emit('error', err);
+				throw err;
+			}
+
+			cache.writeThrough(identifier, newStream).pipe(passThroughStream);
 		} else {
-			cache.writeThrough(identifier, createCallback()).pipe(passThroughStream);
+			stream.pipe(passThroughStream);
 		}
 	});
 
@@ -116,31 +159,44 @@ StreamCache.prototype.purge = function(callback) {
  *                                             from the cache.
  */
 StreamCache.prototype._read = function(identifier, options) {
-	options = options || {};
 	var cachedObjectPath = this._getCachedObjectPath(identifier);
 
-	var newerThan = options.newerThan || 0;
+	return this._getReadFileDescriptor(identifier).then(function(fd) {
+
+		// First argument of fs.createReadStream is ignored
+		// because the 'fd' is present
+		return fs.createReadStream(false, { fd: fd, autClose: true });
+	}).catch(function(e) {
+		return false;
+	});
+};
+
+StreamCache.prototype.isStale = function(identifier) {
+	var cache = this;
+	return this._getReadFileDescriptor(identifier).then(function(fd) {
+		return cache._isStale(fd);
+	});
+};
+
+StreamCache.prototype._isStale = function(fd) {
+	var defaultTtl = this.defaultTtl;
+
+	return this._getMetaDataUsingFileDescriptor(fd).then(function(metadata) {
+		return metadata.age > defaultTtl;
+	});
+};
+
+StreamCache.prototype._getReadFileDescriptor = function(identifier, options) {
+	var cachedObjectPath = this._getCachedObjectPath(identifier);
 
 	return new Promise(function(resolve, reject) {
 		fs.open(cachedObjectPath, 'r', function(e, fd) {
 			if (e) {
-				resolve(false);
-			} else {
-				fs.fstat(fd, function(e, stats) {
-					if (stats.mtime < newerThan) {
-						resolve(false);
-					} else {
-						// First argument of fs.createReadStream is ignored
-						// because the 'fd' is present
-						var readStream = fs.createReadStream(false, { fd: fd });
-						readStream.on('end', function() {
-							// Close fd
-							fs.close(fd);
-						});
-						resolve(readStream);
-					}
-				});
+				reject(e);
+				return;
 			}
+
+			resolve(fd);
 		});
 	});
 };

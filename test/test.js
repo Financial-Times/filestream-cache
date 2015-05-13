@@ -31,6 +31,29 @@ describe("StreamCache", function() {
 	});
 
 	describe("#writeThrough(identifier, stream)", function() {
+		it("should not cache an erroring stream", function(done) {
+			var testBucket = 'writeThrough#error';
+			var cacheKey = 'test';
+
+			var stream = helpers.createErroringStream("test content");
+			var testDirectory = helpers.localTestDirectory(testBucket);
+
+			var streamCache = new StreamCache(testDirectory);
+			var cachedStream = streamCache.writeThrough(cacheKey, stream);
+
+			cachedStream.on('error', function(err) {
+				assert.equal(err.message, 'fail');
+				var cachedObjectPromise = streamCache._read(cacheKey);
+
+				cachedObjectPromise.then(function(object) {
+					assert.equal(object, false);
+
+					rmrf(testDirectory);
+					done();
+				});
+			});
+		});
+
 		it("should write the stream to the cache and return the stream without modification", function(done) {
 			var streamContent = 'my test stream content';
 			var testBucket = 'writeThrough#test';

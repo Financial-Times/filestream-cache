@@ -224,12 +224,13 @@ StreamCache.prototype.writeThrough = function(identifier, stream) {
 		return fs.createWriteStream(cachedObjectPath);
 	});
 
-	return stream.pipe(through(function(chunk, enc, callback) {
+	var cachedStream = stream.pipe(through(function(chunk, enc, callback) {
+		this.push(chunk, enc);
+
 		cacheStream.then(function(cache) {
 			cache.write(chunk, enc);
 		});
 
-		this.push(chunk, enc);
 		callback();
 	}, function flush(callback) {
 		cacheStream.then(function(stream) {
@@ -237,6 +238,16 @@ StreamCache.prototype.writeThrough = function(identifier, stream) {
 			callback();
 		});
 	}));
+
+	stream.on('error', function(err) {
+		cacheStream.then(function(s) { s.end();
+			fs.unlink(cachedObjectPath, function(e) {
+			});
+		});
+		cachedStream.emit('error', err);
+	});
+
+	return cachedStream;
 };
 
 StreamCache.prototype._getCachedObjectPath = function(identifier) {

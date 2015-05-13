@@ -6,6 +6,7 @@ var resumer = require('resumer');
 var rmrf = require('rmrf');
 var StreamCache = require('../index');
 var assert = require('assert');
+var PassThrough = require('stream').PassThrough;
 
 function localTestDirectory(bucket) {
 	return path.join(__dirname, '/tmp/', bucket);
@@ -33,6 +34,15 @@ function createCacheObjects(bucket, objectNames) {
 function createStream(streamContents) {
 	var stream = resumer();
 	stream.queue(streamContents);
+	return stream;
+}
+
+function createErroringStream(streamContents) {
+	var stream = new PassThrough();
+	stream.write(streamContents);
+	process.nextTick(function() {
+		stream.emit('error', new Error("fail"));
+	});
 	return stream;
 }
 
@@ -101,5 +111,6 @@ module.exports = {
 	createCacheObjects: createCacheObjects,
 	testPurgeFunction: testPurgeFunction,
 	testIsStale: testIsStale,
-	createStream: createStream
+	createStream: createStream,
+	createErroringStream: createErroringStream
 };

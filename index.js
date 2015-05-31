@@ -17,7 +17,6 @@ function StreamCache(rootDirectory, options) {
 	this.rootCacheDirectory = rootDirectory;
 	options = options || {};
 	this.defaultTtl = options.defaultTtl || twelveHoursInSeconds;
-	this.serveStale = options.serveStale || false;
 
 	// TODO: Where's best to handle errors here?
 	// Ensure the rootCacheDirectory is present.

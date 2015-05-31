@@ -17,7 +17,13 @@ system's disk buffer cache.
 
 ## API
 
-TODO: (See JSDoc comments in `index.js`)
+#### `get(identifier, options, createCallback)`
+
+#### `purge(filter)`
+
+#### `isStale(identifier)`
+
+#### `writeThrough(identifier, stream)`
 
 ### Example
 

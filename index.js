@@ -224,6 +224,14 @@ StreamCache.prototype.writeThrough = function(identifier, stream) {
 		return fs.createWriteStream(cachedObjectPath);
 	});
 
+	stream.on('error', function(err) {
+		cacheStream.then(function(s) { s.end();
+			fs.unlink(cachedObjectPath, function(e) {
+			});
+		});
+		cachedStream.emit('error', err);
+	});
+
 	var cachedStream = stream.pipe(through(function(chunk, enc, callback) {
 		this.push(chunk, enc);
 
@@ -239,13 +247,6 @@ StreamCache.prototype.writeThrough = function(identifier, stream) {
 		});
 	}));
 
-	stream.on('error', function(err) {
-		cacheStream.then(function(s) { s.end();
-			fs.unlink(cachedObjectPath, function(e) {
-			});
-		});
-		cachedStream.emit('error', err);
-	});
 
 	return cachedStream;
 };

@@ -54,6 +54,29 @@ describe("StreamCache", function() {
 			});
 		});
 
+		it("should not cache an erroring Readable stream", function(done) {
+			var testBucket = 'writeThrough#readableerror';
+			var cacheKey = 'test';
+
+			var stream = helpers.createErroringReadableStream();
+			var testDirectory = helpers.localTestDirectory(testBucket);
+
+			var streamCache = new StreamCache(testDirectory);
+			var cachedStream = streamCache.writeThrough(cacheKey, stream);
+
+			cachedStream.on('error', function(err) {
+				assert.equal(err.code, 'ENOENT');
+				var cachedObjectPromise = streamCache._read(cacheKey);
+
+				cachedObjectPromise.then(function(object) {
+					assert.equal(object, false);
+
+					rmrf(testDirectory);
+					done();
+				});
+			});
+		});
+
 		it("should write the stream to the cache and return the stream without modification", function(done) {
 			var streamContent = 'my test stream content';
 			var testBucket = 'writeThrough#test';

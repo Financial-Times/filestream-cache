@@ -46,6 +46,11 @@ function createErroringStream(streamContents) {
 	return stream;
 }
 
+function createErroringReadableStream() {
+	var stream = fs.createReadStream("/dev/not/a/thing");
+	return stream;
+}
+
 function testPurgeFunction(cacheKeys, expected, filterFunction) {
 	// Add some uniqueness with Date.now()
 	var bucket = "purge#promisefilter-" + (Date.now() * Math.random());
@@ -112,5 +117,6 @@ module.exports = {
 	testPurgeFunction: testPurgeFunction,
 	testIsStale: testIsStale,
 	createStream: createStream,
+	createErroringReadableStream: createErroringReadableStream,
 	createErroringStream: createErroringStream
 };

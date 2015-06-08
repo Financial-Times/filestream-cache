@@ -5,7 +5,8 @@
   },
   "devDependencies": {
     "mocha": "^2.2.4",
-    "resumer": "0.0.0"
+    "resumer": "0.0.0",
+    "streamcat": "^2.6.0"
   },
   "dependencies": {
     "async-filter": "^1.0.0",

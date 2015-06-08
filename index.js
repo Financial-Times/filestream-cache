@@ -1,3 +1,5 @@
+'use strict';
+
 var fs = require('fs');
 var path = require('path');
 var through = require('through2');
@@ -5,6 +7,7 @@ var PassThrough = require('stream').PassThrough;
 var asyncFilter = require('async-filter');
 var tryall = require('tryall');
 var mkdirp = require('mkdirp');
+var streamcat = require('streamcat');
 var twelveHoursInSeconds = 43200;
 
 /**
@@ -88,7 +91,13 @@ StreamCache.prototype.get = function(identifier, options, createCallback) {
 				throw err;
 			}
 
-			cache.writeThrough(identifier, newStream).pipe(passThroughStream);
+			var stream = cache.writeThrough(identifier, newStream);
+
+			stream.on('error', function(error) {
+				passThroughStream.emit('error', error);
+			});
+
+			stream.pipe(passThroughStream);
 		} else {
 			stream.pipe(passThroughStream);
 		}
@@ -246,8 +255,7 @@ StreamCache.prototype.writeThrough = function(identifier, stream) {
 		});
 	}));
 
-
-	return cachedStream;
+	return streamcat([cachedStream]);
 };
 
 StreamCache.prototype._getCachedObjectPath = function(identifier) {
